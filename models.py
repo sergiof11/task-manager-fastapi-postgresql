@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class TaskCreate(BaseModel):
     title: str
-    completed: bool
+    completed: bool = False
 
 
 class TaskUpdate(BaseModel):
@@ -12,6 +12,13 @@ class TaskUpdate(BaseModel):
 
 
 class Task(BaseModel):
+    id: int
+    title: str
+    completed: bool
+
+
+class TaskDeleteResponse(BaseModel):
+    message: str
     id: int
     title: str
     completed: bool
