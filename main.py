@@ -10,6 +10,7 @@ from crud import (
     update_task_db
 )
 
+
 app = FastAPI()
 
 
@@ -42,27 +43,34 @@ def create_task(task: TaskCreate):
 
 @app.delete("/tasks/{task_id}", response_model=TaskDeleteResponse)
 def delete_task(task_id: int):
-    task = find_task_by_id(task_id)
+    deleted_task = delete_task_db(task_id)
 
-    if task is None:
-        raise HTTPException(status_code=404, detail="Tarea no encontrada")
-
-    delete_task_db(task_id)
+    if deleted_task is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Tarea no encontrada"
+        )
 
     return {
         "message": "Tarea eliminada",
-        "id": task["id"],
-        "title": task["title"],
-        "completed": task["completed"]
+        "id": deleted_task["id"],
+        "title": deleted_task["title"],
+        "completed": deleted_task["completed"]
     }
+
 
 @app.put("/tasks/{task_id}", response_model=Task)
 def update_task(task_id: int, task: TaskUpdate):
-    existing_task = find_task_by_id(task_id)
+    updated_task = update_task_db(
+        task_id,
+        task.title,
+        task.completed
+    )
 
-    if existing_task is None:
-        raise HTTPException(status_code=404, detail="Tarea no encontrada")
-
-    updated_task = update_task_db(task_id, task.title, task.completed)
+    if updated_task is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Tarea no encontrada"
+        )
 
     return updated_task

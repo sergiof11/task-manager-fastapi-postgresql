@@ -1,24 +1,34 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
-class TaskCreate(BaseModel):
-    title: str
+class TaskBase(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str):
+        value = value.strip()
+
+        if not value:
+            raise ValueError("El título no puede estar vacío")
+
+        return value
+
+
+class TaskCreate(TaskBase):
     completed: bool = False
 
 
-class TaskUpdate(BaseModel):
-    title: str
+class TaskUpdate(TaskBase):
     completed: bool
 
 
-class Task(BaseModel):
+class Task(TaskBase):
     id: int
-    title: str
     completed: bool
 
 
-class TaskDeleteResponse(BaseModel):
+class TaskDeleteResponse(TaskBase):
     message: str
     id: int
-    title: str
     completed: bool
