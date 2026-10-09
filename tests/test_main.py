@@ -1,8 +1,11 @@
+import os
+
+os.environ["DB_NAME"] = "gestor_tareas_test"
+
 from fastapi.testclient import TestClient
 from main import app
 
 client = TestClient(app)
-
 
 def test_get_home():
     response = client.get("/")
