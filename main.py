@@ -1,15 +1,19 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy.orm import Session
+
+from database import Base, engine, get_db
+import db_models
 
 from models import Task, TaskCreate, TaskUpdate, TaskDeleteResponse
-
 from crud import (
     find_task_by_id,
     get_all_tasks,
     create_task_db,
     delete_task_db,
-    update_task_db
+    update_task_db,
 )
 
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -20,30 +24,41 @@ def home():
 
 
 @app.get("/tasks", response_model=list[Task])
-def get_tasks():
-    tasks = get_all_tasks()
-    return tasks
+def get_tasks(db: Session = Depends(get_db)):
+    return get_all_tasks(db)
 
 
 @app.get("/tasks/{task_id}", response_model=Task)
-def get_task(task_id: int):
-    task = find_task_by_id(task_id)
+def get_task(task_id: int, db: Session = Depends(get_db)):
+    task = find_task_by_id(db, task_id)
 
     if task is None:
-        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+        raise HTTPException(
+            status_code=404,
+            detail="Tarea no encontrada"
+        )
 
     return task
 
 
 @app.post("/tasks", response_model=Task, status_code=201)
-def create_task(task: TaskCreate):
-    new_task = create_task_db(task.title, task.completed)
-    return new_task
+def create_task(
+    task: TaskCreate,
+    db: Session = Depends(get_db)
+):
+    return create_task_db(
+        db,
+        task.title,
+        task.completed
+    )
 
 
 @app.delete("/tasks/{task_id}", response_model=TaskDeleteResponse)
-def delete_task(task_id: int):
-    deleted_task = delete_task_db(task_id)
+def delete_task(
+    task_id: int,
+    db: Session = Depends(get_db)
+):
+    deleted_task = delete_task_db(db, task_id)
 
     if deleted_task is None:
         raise HTTPException(
@@ -53,15 +68,20 @@ def delete_task(task_id: int):
 
     return {
         "message": "Tarea eliminada",
-        "id": deleted_task["id"],
-        "title": deleted_task["title"],
-        "completed": deleted_task["completed"]
+        "id": deleted_task.id,
+        "title": deleted_task.title,
+        "completed": deleted_task.completed
     }
 
 
 @app.put("/tasks/{task_id}", response_model=Task)
-def update_task(task_id: int, task: TaskUpdate):
+def update_task(
+    task_id: int,
+    task: TaskUpdate,
+    db: Session = Depends(get_db)
+):
     updated_task = update_task_db(
+        db,
         task_id,
         task.title,
         task.completed

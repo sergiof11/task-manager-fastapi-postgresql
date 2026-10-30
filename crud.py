@@ -1,112 +1,51 @@
-from database import get_connection
+from sqlalchemy.orm import Session
+
+from db_models import TaskDB
 
 
-def find_task_by_id(task_id: int):
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT * FROM tasks WHERE id = %s",
-                (task_id,)
-            )
+def get_all_tasks(db: Session):
+    return db.query(TaskDB).all()
 
-            row = cursor.fetchone()
 
-    if row is None:
+def find_task_by_id(db: Session, task_id: int):
+    return db.query(TaskDB).filter(TaskDB.id == task_id).first()
+
+
+def create_task_db(db: Session, title: str, completed: bool):
+    task = TaskDB(
+        title=title,
+        completed=completed
+    )
+
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+
+    return task
+
+
+def update_task_db(db: Session, task_id: int, title: str, completed: bool):
+    task = find_task_by_id(db, task_id)
+
+    if task is None:
         return None
 
-    return {
-        "id": row[0],
-        "title": row[1],
-        "completed": row[2]
-    }
+    task.title = title
+    task.completed = completed
+
+    db.commit()
+    db.refresh(task)
+
+    return task
 
 
-def get_all_tasks():
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM tasks")
-            rows = cursor.fetchall()
+def delete_task_db(db: Session, task_id: int):
+    task = find_task_by_id(db, task_id)
 
-    tasks = []
-
-    for row in rows:
-        tasks.append({
-            "id": row[0],
-            "title": row[1],
-            "completed": row[2]
-        })
-
-    return tasks
-
-
-def create_task_db(title: str, completed: bool):
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO tasks (title, completed)
-                VALUES (%s, %s)
-                RETURNING id, title, completed
-                """,
-                (title, completed)
-            )
-
-            row = cursor.fetchone()
-
-            if row is None:
-                raise RuntimeError("No se pudo crear la tarea")
-
-    return {
-        "id": row[0],
-        "title": row[1],
-        "completed": row[2]
-    }
-
-
-def delete_task_db(task_id: int):
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                """
-                DELETE FROM tasks
-                WHERE id = %s
-                RETURNING id, title, completed
-                """,
-                (task_id,)
-            )
-
-            row = cursor.fetchone()
-
-    if row is None:
+    if task is None:
         return None
 
-    return {
-        "id": row[0],
-        "title": row[1],
-        "completed": row[2]
-    }
+    db.delete(task)
+    db.commit()
 
-
-def update_task_db(task_id: int, title: str, completed: bool):
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                """
-                UPDATE tasks
-                SET title = %s, completed = %s
-                WHERE id = %s
-                RETURNING id, title, completed
-                """,
-                (title, completed, task_id)
-            )
-
-            row = cursor.fetchone()
-
-    if row is None:
-        return None
-
-    return {
-        "id": row[0],
-        "title": row[1],
-        "completed": row[2]
-    }
+    return task

@@ -4,15 +4,20 @@ os.environ["DB_NAME"] = "gestor_tareas_test"
 
 from fastapi.testclient import TestClient
 from main import app
-from database import get_connection
+from database import SessionLocal
+from db_models import TaskDB
 
 client = TestClient(app)
 
 
 def clear_tasks():
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("DELETE FROM tasks")
+    db = SessionLocal()
+
+    try:
+        db.query(TaskDB).delete()
+        db.commit()
+    finally:
+        db.close()
 
 
 def test_get_home():

@@ -1,30 +1,34 @@
 import os
-import psycopg
+
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
+DB_NAME = os.getenv("DB_NAME", "gestor_tareas")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
 
-def get_connection():
-    return psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname=os.getenv("DB_NAME", "gestor_tareas"),
-        user="postgres",
-        password=os.getenv("DB_PASSWORD")
-    )
+DATABASE_URL = (
+    f"postgresql+psycopg://postgres:{DB_PASSWORD}"
+    f"@localhost:5432/{DB_NAME}"
+)
 
+engine = create_engine(DATABASE_URL)
 
-def create_tables():
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("""
-            CREATE TABLE IF NOT EXISTS tasks (
-                id SERIAL PRIMARY KEY,
-                title TEXT NOT NULL,
-                completed BOOLEAN NOT NULL DEFAULT FALSE
-            )
-            """)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
+
+Base = declarative_base()
 
 
-create_tables()
+def get_db():
+    db = SessionLocal()
+
+    try:
+        yield db
+    finally:
+        db.close()

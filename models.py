@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class TaskBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     title: str = Field(min_length=1, max_length=200)
 
     @field_validator("title")
